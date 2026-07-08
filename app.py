@@ -7,32 +7,21 @@ import streamlit.components.v1 as components
 import psycopg2
 import folium
 import json
-import base64
-import os
+from google.oauth2 import service_account
 
 if 'GOOGLE_APPLICATION_CREDENTIALS_JSON' in st.secrets:
-    # 1. Leer el JSON completo como string desde los secretos
+    # 1. Leer el JSON completo desde los secretos
     creds_string = st.secrets["GOOGLE_APPLICATION_CREDENTIALS_JSON"]
     
-    # 2. Convertirlo en diccionario válido
+    # 2. Convertirlo en diccionario válido de Python
     creds_dict = json.loads(creds_string)
     
-    # 3. Crear el archivo temporal físico con las credenciales
-    creds_path = "google_creds.json"
-    with open(creds_path, "w") as f:
-        json.dump(creds_dict, f)
-        
-    # 4. Inicializar Earth Engine usando el método nativo para archivos de servicio
-    try:
-        # Inicializamos pasando el archivo directamente a través del ServiceAccountCredentials estándar
-        private_key = creds_dict['private_key']
-        client_email = creds_dict['client_email']
-        credential_object = ee.ServiceAccountCredentials(client_email, key_data=private_key)
-        ee.Initialize(credential_object)
-    finally:
-        # Limpieza: borrar el archivo temporal por seguridad
-        if os.path.exists(creds_path):
-            os.remove(creds_path)
+    # 3. Autenticar usando las credenciales nativas de Google OAuth2
+    scopes = ['https://www.googleapis.com/auth/earthengine', 'https://www.googleapis.com/auth/cloud-platform']
+    credentials = service_account.Credentials.from_service_account_info(creds_dict, scopes=scopes)
+    
+    # 4. Inicializar Earth Engine con las credenciales validadas
+    ee.Initialize(credentials=credentials)
         
 else:
     # Si está corriendo de forma local en tu computadora
