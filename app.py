@@ -295,15 +295,12 @@ with st.form("formulario_especies", clear_on_submit=True):
     boton_enviar = st.form_submit_button("Enviar Reporte a PostGIS")
     
     if boton_enviar:
-        # Validar que se haya seleccionado un animal y un lugar válido
         if lugar_seleccionado != "Seleccione el lugar del campus..." and especie_final not in ["Seleccione el animal visto...", ""]:
             try:
-                # Extraer Latitud y Longitud del diccionario de la UTP
                 lat, lon = coordenadas_capturadas
 
-                # Conexión Inteligente: Detecta si está en la nube o en Localhost
+                # Conexión Segura usando st.secrets en Streamlit Cloud
                 if 'postgres' in st.secrets:
-                    # Si está corriendo en la nube de Streamlit, usa las credenciales secretas
                     conn = psycopg2.connect(
                         host=st.secrets['postgres']['host'],
                         database=st.secrets['postgres']['database'],
@@ -312,19 +309,17 @@ with st.form("formulario_especies", clear_on_submit=True):
                         port=st.secrets['postgres']['port']
                     )
                 else:
-                    # Si estás haciendo pruebas locales en tu computadora
+                    # Tu respaldo local por si acaso haces pruebas en tu PC
                     conn = psycopg2.connect(
                         host="localhost",
                         database="proyecto",  
                         user="postgres",           
-                        password="tu_password",  # <-- Asegúrate de que coincida con tu clave local (242315)
+                        password="tu_password_local",
                         port="5432"
                     )
+                
                 cursor = conn.cursor()
                 
-                
-                # Consulta SQL espacial usando las variables directamente
-                # PostGIS recibe: Longitud (X), Latitud (Y)
                 query_sql = """
                     INSERT INTO avistamientos_fauna (especie, fecha, comentarios, geom)
                     VALUES (%s, %s, %s, ST_SetSRID(ST_MakePoint(%s, %s), 4326));
@@ -336,9 +331,7 @@ with st.form("formulario_especies", clear_on_submit=True):
                 cursor.close()
                 conn.close()
                 
-                st.success(f"✅ ¡Reporte de '{especie_final}' registrado en PostGIS para el sector '{lugar_seleccionado}' con éxito!")
+                st.success(f"✅ ¡Reporte de '{especie_final}' registrado en PostGIS de Neon con éxito!")
                 
             except Exception as e:
-                st.error(f"❌ Error al conectar o guardar en la base de datos: {e}")
-        else:
-            st.warning("⚠️ Por favor, asegúrate de seleccionar un animal válido y un lugar del campus antes de enviar.")
+                st.error(f"❌ Error al conectar o guardar en Neon: {e}")
