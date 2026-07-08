@@ -10,9 +10,18 @@ import json
 
 if 'EARTH_ENGINE_CREDENTIALS' in st.secrets:
     # Si está corriendo en la nube de Streamlit
-    ee_creds = json.loads(st.secrets['EARTH_ENGINE_CREDENTIALS'])
-    credential_object = ee.ServiceAccountCredentials(ee_creds['client_email'], key_data=ee_creds['private_key'])
+    # Leer credenciales desde los secretos de Streamlit
+    ee_creds = st.secrets["EARTH_ENGINE_CREDENTIALS"]
+    # Limpiar los saltos de línea de la clave privada por si acaso
+    private_key = ee_creds['private_key'].replace('\\n', '\n')
+
+    # Autenticar de forma segura
+    credential_object = ee.ServiceAccountCredentials(
+        ee_creds['client_email'], 
+        key_data=private_key
+    )
     ee.Initialize(credential_object)
+        
 else:
     # Si está corriendo de forma local en tu computadora
     try:
