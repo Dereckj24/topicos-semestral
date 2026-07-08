@@ -9,13 +9,16 @@ import folium
 import json
 
 if 'EARTH_ENGINE_CREDENTIALS' in st.secrets:
-    # Si está corriendo en la nube de Streamlit
-    # Leer credenciales desde los secretos de Streamlit
-    ee_creds = st.secrets["EARTH_ENGINE_CREDENTIALS"]
-    # Limpiar los saltos de línea de la clave privada por si acaso
+    # 1. Leer el texto plano desde los secretos
+    ee_creds_raw = st.secrets["EARTH_ENGINE_CREDENTIALS"]
+    
+    # 2. CONVERTIR EL TEXTO EN UN DICCIONARIO REAL 
+    ee_creds = json.loads(ee_creds_raw)
+    
+    # 3. Limpiar los saltos de línea de la clave privada
     private_key = ee_creds['private_key'].replace('\\n', '\n')
 
-    # Autenticar de forma segura
+    # 4. Autenticar de forma segura
     credential_object = ee.ServiceAccountCredentials(
         ee_creds['client_email'], 
         key_data=private_key
