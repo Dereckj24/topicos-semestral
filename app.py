@@ -8,22 +8,14 @@ import psycopg2
 import folium
 import json
 
-if 'EE_PRIVATE_KEY' in st.secrets:
+if 'EE_PRIVATE_KEY_B64' in st.secrets:
     client_email = st.secrets["EE_CLIENT_EMAIL"]
-    raw_key = st.secrets["EE_PRIVATE_KEY"]
-
-    # --- LIMPIEZA ABSOLUTA DE LA CLAVE PRIVADA ---
-    # Eliminar encabezados/pie temporales para limpiar el cuerpo de la clave
-    key_body = raw_key.replace("-----BEGIN PRIVATE KEY-----", "").replace("-----END PRIVATE KEY-----", "")
-    # Remover saltos de línea rotos, retornos de carro y espacios
-    key_body = key_body.replace("\n", "").replace("\r", "").replace(" ", "")
+    encoded_key = st.secrets["EE_PRIVATE_KEY_B64"]
     
-    # Reconstruir el formato PEM exacto (bloques de 64 caracteres separados por \n)
-    chunks = [key_body[i:i+64] for i in range(0, len(key_body), 64)]
-    clean_private_key = "-----BEGIN PRIVATE KEY-----\n" + "\n".join(chunks) + "\n-----END PRIVATE KEY-----\n"
-    # ---------------------------------------------
+    # Decodificar de forma segura la clave original sin alteraciones del navegador
+    clean_private_key = base64.b64decode(encoded_key).decode('utf-8')
 
-    # Autenticar con la clave perfectamente formateada en memoria
+    # Autenticar en Earth Engine
     credential_object = ee.ServiceAccountCredentials(
         client_email, 
         key_data=clean_private_key
