@@ -9,14 +9,24 @@ import folium
 import json
 
 if 'EE_PRIVATE_KEY' in st.secrets:
-    # Leer las dos variables limpias desde los secretos
     client_email = st.secrets["EE_CLIENT_EMAIL"]
-    private_key = st.secrets["EE_PRIVATE_KEY"]
+    raw_key = st.secrets["EE_PRIVATE_KEY"]
 
-    # Autenticar de forma directa sin conversiones JSON complejas
+    # --- LIMPIEZA ABSOLUTA DE LA CLAVE PRIVADA ---
+    # Eliminar encabezados/pie temporales para limpiar el cuerpo de la clave
+    key_body = raw_key.replace("-----BEGIN PRIVATE KEY-----", "").replace("-----END PRIVATE KEY-----", "")
+    # Remover saltos de línea rotos, retornos de carro y espacios
+    key_body = key_body.replace("\n", "").replace("\r", "").replace(" ", "")
+    
+    # Reconstruir el formato PEM exacto (bloques de 64 caracteres separados por \n)
+    chunks = [key_body[i:i+64] for i in range(0, len(key_body), 64)]
+    clean_private_key = "-----BEGIN PRIVATE KEY-----\n" + "\n".join(chunks) + "\n-----END PRIVATE KEY-----\n"
+    # ---------------------------------------------
+
+    # Autenticar con la clave perfectamente formateada en memoria
     credential_object = ee.ServiceAccountCredentials(
         client_email, 
-        key_data=private_key
+        key_data=clean_private_key
     )
     ee.Initialize(credential_object)
         
