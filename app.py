@@ -12,7 +12,7 @@ if 'EE_PRIVATE_KEY_B64' in st.secrets:
     client_email = st.secrets["EE_CLIENT_EMAIL"]
     encoded_key = st.secrets["EE_PRIVATE_KEY_B64"]
     
-    # Decodificar de forma segura la clave original sin alteraciones del navegador
+    # Ahora Python sí sabrá qué es base64 y decodificará sin problemas
     clean_private_key = base64.b64decode(encoded_key).decode('utf-8')
 
     # Autenticar en Earth Engine
