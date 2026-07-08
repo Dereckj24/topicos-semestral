@@ -8,20 +8,27 @@ import psycopg2
 import folium
 import json
 import base64
+import os
 
-if 'EE_PRIVATE_KEY_B64' in st.secrets:
-    client_email = st.secrets["EE_CLIENT_EMAIL"]
-    encoded_key = st.secrets["EE_PRIVATE_KEY_B64"]
+if 'GOOGLE_APPLICATION_CREDENTIALS_JSON' in st.secrets:
+    # 1. Leer el JSON completo como string desde los secretos
+    creds_string = st.secrets["GOOGLE_APPLICATION_CREDENTIALS_JSON"]
     
-    # Ahora Python sí sabrá qué es base64 y decodificará sin problemas
-    clean_private_key = base64.b64decode(encoded_key).decode('utf-8')
-
-    # Autenticar en Earth Engine
-    credential_object = ee.ServiceAccountCredentials(
-        client_email, 
-        key_data=clean_private_key
-    )
+    # 2. Convertirlo en diccionario válido
+    creds_dict = json.loads(creds_string)
+    
+    # 3. Crear un archivo temporal físico en el servidor que contenga el JSON
+    creds_path = "google_creds.json"
+    with open(creds_path, "w") as f:
+        json.dump(creds_dict, f)
+        
+    # 4. Inicializar Earth Engine usando el archivo nativo de Service Account
+    credential_object = ee.ServiceAccountCredentials.from_service_account_file(creds_path)
     ee.Initialize(credential_object)
+    
+    # Limpieza: borrar el archivo temporal de la memoria del disco por seguridad
+    if os.path.exists(creds_path):
+        os.remove(creds_path)
         
 else:
     # Si está corriendo de forma local en tu computadora
