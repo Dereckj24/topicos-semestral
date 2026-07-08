@@ -10,37 +10,37 @@ import json
 from google.oauth2 import service_account
 
 # =========================================================================
-# CONFIGURACIÓN DIRECTA DE CREDENCIALES (Inmune a errores de Streamlit Cloud)
+# CONFIGURACIÓN DIRECTA DE CREDENCIALES
 # =========================================================================
-# 1. Pega aquí el correo de cliente de tu JSON original
 CLIENT_EMAIL = "tu-cuenta-de-servicio@tu-proyecto.iam.gserviceaccount.com"
 
-# 2. Pega aquí la clave privada idéntica, usando comillas triples. 
-# Asegúrate de incluir los \n tal y como vienen en una sola línea en tu JSON.
+# Asegúrate de mantener tu clave secreta original completa aquí
 PRIVATE_KEY = "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC3X7Nv...\n-----END PRIVATE KEY-----\n"
 # =========================================================================
 
 try:
-    # Formatear la clave para corregir cualquier escape de barras de forma estricta
+    # 1. Limpiar escapes corruptos de la clave privada
     clean_key = PRIVATE_KEY.replace('\\n', '\n').replace('\\\\n', '\n')
     
+    # 2. Diccionario completo con los campos obligatorios que exige Google
     creds_dict = {
         "type": "service_account",
         "client_email": CLIENT_EMAIL,
-        "private_key": clean_key
+        "private_key": clean_key,
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth"
     }
     
+    # 3. Autenticar usando Google OAuth2
     scopes = ['https://www.googleapis.com/auth/earthengine', 'https://www.googleapis.com/auth/cloud-platform']
     credentials = service_account.Credentials.from_service_account_info(creds_dict, scopes=scopes)
     
-    # Inicializar Earth Engine de forma global antes de cualquier otra llamada
+    # 4. Inicializar Earth Engine
     ee.Initialize(credentials=credentials)
     st.success("¡Conexión exitosa a Google Earth Engine!")
 
 except Exception as e:
-    # Diagnóstico por si acaso quedara algún residuo
     st.error(f"Error en autenticación: {str(e)}")
-    # Si falla en la nube, intentará el método local por si estás en tu PC
     try:
         ee.Initialize()
     except Exception:
