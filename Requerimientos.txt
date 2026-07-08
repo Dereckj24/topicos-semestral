@@ -1,6 +1,7 @@
 streamlit
-google-earth-engine
-folium
+earthengine-api
+geemap
 pandas
 matplotlib
+folium
 psycopg2-binary
