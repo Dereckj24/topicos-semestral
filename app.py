@@ -7,6 +7,7 @@ import streamlit.components.v1 as components
 import psycopg2
 import folium
 import json
+import base64
 
 if 'EE_PRIVATE_KEY_B64' in st.secrets:
     client_email = st.secrets["EE_CLIENT_EMAIL"]
