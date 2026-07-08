@@ -17,18 +17,22 @@ if 'GOOGLE_APPLICATION_CREDENTIALS_JSON' in st.secrets:
     # 2. Convertirlo en diccionario válido
     creds_dict = json.loads(creds_string)
     
-    # 3. Crear un archivo temporal físico en el servidor que contenga el JSON
+    # 3. Crear el archivo temporal físico con las credenciales
     creds_path = "google_creds.json"
     with open(creds_path, "w") as f:
         json.dump(creds_dict, f)
         
-    # 4. Inicializar Earth Engine usando el archivo nativo de Service Account
-    credential_object = ee.ServiceAccountCredentials.from_service_account_file(creds_path)
-    ee.Initialize(credential_object)
-    
-    # Limpieza: borrar el archivo temporal de la memoria del disco por seguridad
-    if os.path.exists(creds_path):
-        os.remove(creds_path)
+    # 4. Inicializar Earth Engine usando el método nativo para archivos de servicio
+    try:
+        # Inicializamos pasando el archivo directamente a través del ServiceAccountCredentials estándar
+        private_key = creds_dict['private_key']
+        client_email = creds_dict['client_email']
+        credential_object = ee.ServiceAccountCredentials(client_email, key_data=private_key)
+        ee.Initialize(credential_object)
+    finally:
+        # Limpieza: borrar el archivo temporal por seguridad
+        if os.path.exists(creds_path):
+            os.remove(creds_path)
         
 else:
     # Si está corriendo de forma local en tu computadora
