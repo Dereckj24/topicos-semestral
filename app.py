@@ -12,16 +12,13 @@ if 'EARTH_ENGINE_CREDENTIALS' in st.secrets:
     # 1. Leer el texto plano desde los secretos
     ee_creds_raw = st.secrets["EARTH_ENGINE_CREDENTIALS"]
     
-    # 2. CONVERTIR EL TEXTO EN UN DICCIONARIO REAL 
+    # 2. Convertir el texto en un diccionario real (json maneja los saltos de línea automáticamente)
     ee_creds = json.loads(ee_creds_raw)
     
-    # 3. Limpiar los saltos de línea de la clave privada
-    private_key = ee_creds['private_key'].replace('\\n', '\n')
-
-    # 4. Autenticar de forma segura
+    # 3. Autenticar usando directamente el diccionario extraído
     credential_object = ee.ServiceAccountCredentials(
         ee_creds['client_email'], 
-        key_data=private_key
+        key_data=ee_creds['private_key']
     )
     ee.Initialize(credential_object)
         
