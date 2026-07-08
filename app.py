@@ -10,23 +10,28 @@ import json
 from google.oauth2 import service_account
 
 if 'GOOGLE_APPLICATION_CREDENTIALS_JSON' in st.secrets:
-    # 1. Leer el JSON crudo desde los secretos de Streamlit
+    # 1. Leer el JSON crudo
     raw_json_string = st.secrets["GOOGLE_APPLICATION_CREDENTIALS_JSON"]
+    creds_dict = json.loads(raw_json_string)
     
-    # 2. LIMPIEZA CRÍTICA: Corregir barras invertidas duplicadas en la clave privada
-    # Esto repara los '\n' que la interfaz web de Streamlit rompe al guardar strings largos
-    clean_json_string = raw_json_string.replace('\\\\n', '\\n')
-    
-    # También nos aseguramos de limpiar saltos literales mal guardados si fuera el caso
-    try:
-        creds_dict = json.loads(clean_json_string)
-    except Exception:
-        # Alternativa de emergencia si el formateo anterior fue muy estricto
-        creds_dict = json.loads(raw_json_string)
-        if 'private_key' in creds_dict:
-            creds_dict['private_key'] = creds_dict['private_key'].replace('\\n', '\n').replace('\\\\n', '\n')
+    # 2. RECONSTRUCCIÓN CRIPTOGRÁFICA INMUNIZADA
+    if 'private_key' in creds_dict:
+        pk = creds_dict['private_key']
+        # Remover cualquier variante de salto de línea escrito como texto literal (\n o \\n)
+        pk_clean = pk.replace('\\\\n', '\n').replace('\\n', '\n')
+        
+        # Aislar el cuerpo de la clave removiendo los encabezados PEM temporales
+        body = pk_clean.replace("-----BEGIN PRIVATE KEY-----", "").replace("-----END PRIVATE KEY-----", "")
+        # Quitar todos los saltos de línea y espacios residuales para dejar solo los caracteres puros
+        body = body.replace("\n", "").replace("\r", "").replace(" ", "")
+        
+        # Dividir el cuerpo en bloques estándar de 64 caracteres (lo que exige la especificación PEM)
+        chunks = [body[i:i+64] for i in range(0, len(body), 64)]
+        
+        # Rearmar la clave con saltos de línea reales y limpios que Google sí aceptará
+        creds_dict['private_key'] = "-----BEGIN PRIVATE KEY-----\n" + "\n".join(chunks) + "\n-----END PRIVATE KEY-----\n"
 
-    # 3. Autenticar usando las credenciales validadas de Google OAuth2
+    # 3. Autenticar usando las credenciales corregidas
     scopes = ['https://www.googleapis.com/auth/earthengine', 'https://www.googleapis.com/auth/cloud-platform']
     credentials = service_account.Credentials.from_service_account_info(creds_dict, scopes=scopes)
     
