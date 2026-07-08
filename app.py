@@ -10,36 +10,29 @@ import json
 from google.oauth2 import service_account
 
 if 'GOOGLE_APPLICATION_CREDENTIALS_JSON' in st.secrets:
-    # 1. Leer el JSON crudo
-    raw_json_string = st.secrets["GOOGLE_APPLICATION_CREDENTIALS_JSON"]
-    creds_dict = json.loads(raw_json_string)
-    
-    # 2. RECONSTRUCCIÓN CRIPTOGRÁFICA INMUNIZADA
-    if 'private_key' in creds_dict:
-        pk = creds_dict['private_key']
-        # Remover cualquier variante de salto de línea escrito como texto literal (\n o \\n)
-        pk_clean = pk.replace('\\\\n', '\n').replace('\\n', '\n')
+    try:
+        raw_json_string = st.secrets["GOOGLE_APPLICATION_CREDENTIALS_JSON"]
+        creds_dict = json.loads(raw_json_string)
         
-        # Aislar el cuerpo de la clave removiendo los encabezados PEM temporales
-        body = pk_clean.replace("-----BEGIN PRIVATE KEY-----", "").replace("-----END PRIVATE KEY-----", "")
-        # Quitar todos los saltos de línea y espacios residuales para dejar solo los caracteres puros
-        body = body.replace("\n", "").replace("\r", "").replace(" ", "")
-        
-        # Dividir el cuerpo en bloques estándar de 64 caracteres (lo que exige la especificación PEM)
-        chunks = [body[i:i+64] for i in range(0, len(body), 64)]
-        
-        # Rearmar la clave con saltos de línea reales y limpios que Google sí aceptará
-        creds_dict['private_key'] = "-----BEGIN PRIVATE KEY-----\n" + "\n".join(chunks) + "\n-----END PRIVATE KEY-----\n"
+        # Diagnóstico en pantalla para que veas si la clave está vacía o incompleta
+        if 'private_key' in creds_dict:
+            pk = creds_dict['private_key']
+            st.info(f"Visualización de diagnóstico - Longitud de la clave: {len(pk)} caracteres.")
+            # Corregimos saltos de línea por si acaso
+            creds_dict['private_key'] = pk.replace('\\n', '\n').replace('\\\\n', '\n')
+        else:
+            st.error("¡ERROR CRÍTICO: La propiedad 'private_key' no existe en el JSON de tus Secrets!")
 
-    # 3. Autenticar usando las credenciales corregidas
-    scopes = ['https://www.googleapis.com/auth/earthengine', 'https://www.googleapis.com/auth/cloud-platform']
-    credentials = service_account.Credentials.from_service_account_info(creds_dict, scopes=scopes)
-    
-    # 4. Inicializar Earth Engine
-    ee.Initialize(credentials=credentials)
+        scopes = ['https://www.googleapis.com/auth/earthengine', 'https://www.googleapis.com/auth/cloud-platform']
+        credentials = service_account.Credentials.from_service_account_info(creds_dict, scopes=scopes)
+        ee.Initialize(credentials=credentials)
+        st.success("¡Conexión exitosa a Google Earth Engine!")
+        
+    except Exception as e:
+        # Esto romperá la censura de Streamlit y te mostrará el motivo real del fallo en la pantalla
+        st.error(f"Error detallado al inicializar Earth Engine: {str(e)}")
         
 else:
-    # Si está corriendo de forma local en tu computadora
     try:
         ee.Initialize()
     except Exception as e:
