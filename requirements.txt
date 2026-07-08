@@ -3,5 +3,6 @@ earthengine-api
 geemap
 pandas
 matplotlib
-folium
 psycopg2-binary
+folium
+google-auth
