@@ -10,13 +10,23 @@ import json
 from google.oauth2 import service_account
 
 if 'GOOGLE_APPLICATION_CREDENTIALS_JSON' in st.secrets:
-    # 1. Leer el texto plano desde los secretos
-    creds_string = st.secrets["GOOGLE_APPLICATION_CREDENTIALS_JSON"]
+    # 1. Leer el JSON crudo desde los secretos de Streamlit
+    raw_json_string = st.secrets["GOOGLE_APPLICATION_CREDENTIALS_JSON"]
     
-    # 2. Convertir el texto en un diccionario real (json maneja los saltos de línea automáticamente)
-    creds_dict = json.loads(creds_string)
+    # 2. LIMPIEZA CRÍTICA: Corregir barras invertidas duplicadas en la clave privada
+    # Esto repara los '\n' que la interfaz web de Streamlit rompe al guardar strings largos
+    clean_json_string = raw_json_string.replace('\\\\n', '\\n')
     
-    # 3. Autenticar usando las credenciales nativas de Google OAuth2 sin alterar strings
+    # También nos aseguramos de limpiar saltos literales mal guardados si fuera el caso
+    try:
+        creds_dict = json.loads(clean_json_string)
+    except Exception:
+        # Alternativa de emergencia si el formateo anterior fue muy estricto
+        creds_dict = json.loads(raw_json_string)
+        if 'private_key' in creds_dict:
+            creds_dict['private_key'] = creds_dict['private_key'].replace('\\n', '\n').replace('\\\\n', '\n')
+
+    # 3. Autenticar usando las credenciales validadas de Google OAuth2
     scopes = ['https://www.googleapis.com/auth/earthengine', 'https://www.googleapis.com/auth/cloud-platform']
     credentials = service_account.Credentials.from_service_account_info(creds_dict, scopes=scopes)
     
