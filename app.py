@@ -6,16 +6,20 @@ import matplotlib.pyplot as plt
 import streamlit.components.v1 as components
 import psycopg2
 import folium
+import json
 
-# 1. CONFIGURACIÓN DE LA PÁGINA
-st.set_page_config(layout="wide", page_title="Dashboard Ambiental UTP", page_icon="🌳")
-
-# Inicializar Earth Engine de forma segura mediante un bloque try/except
-try:
-    ee.Initialize()
-except Exception as e:
-    ee.Authenticate()
-    ee.Initialize()
+if 'EARTH_ENGINE_CREDENTIALS' in st.secrets:
+    # Si está corriendo en la nube de Streamlit
+    ee_creds = json.loads(st.secrets['EARTH_ENGINE_CREDENTIALS'])
+    credential_object = ee.ServiceAccountCredentials(ee_creds['client_email'], key_data=ee_creds['private_key'])
+    ee.Initialize(credential_object)
+else:
+    # Si está corriendo de forma local en tu computadora
+    try:
+        ee.Initialize()
+    except Exception as e:
+        ee.Authenticate()
+        ee.Initialize()
 
 # --- DEFINICIÓN DE GEOMETRÍAS (ROIs) ---
 # Coordenadas del Entorno Campus UTP (Frontera Activa)
@@ -271,16 +275,28 @@ with st.form("formulario_especies", clear_on_submit=True):
             try:
                 # Extraer Latitud y Longitud del diccionario de la UTP
                 lat, lon = coordenadas_capturadas
-                
-                # Establecer la conexión con tu PostgreSQL local
-                conn = psycopg2.connect(
-                    host="localhost",
-                    database="proyecto",  
-                    user="postgres",           
-                    password="242315",     
-                    port="5432"
-                )
+
+                # Conexión Inteligente: Detecta si está en la nube o en Localhost
+                if 'postgres' in st.secrets:
+                    # Si está corriendo en la nube de Streamlit, usa las credenciales secretas
+                    conn = psycopg2.connect(
+                        host=st.secrets['postgres']['host'],
+                        database=st.secrets['postgres']['database'],
+                        user=st.secrets['postgres']['user'],
+                        password=st.secrets['postgres']['password'],
+                        port=st.secrets['postgres']['port']
+                    )
+                else:
+                    # Si estás haciendo pruebas locales en tu computadora
+                    conn = psycopg2.connect(
+                        host="localhost",
+                        database="proyecto",  
+                        user="postgres",           
+                        password="tu_password",  # <-- Asegúrate de que coincida con tu clave local (242315)
+                        port="5432"
+                    )
                 cursor = conn.cursor()
+                
                 
                 # Consulta SQL espacial usando las variables directamente
                 # PostGIS recibe: Longitud (X), Latitud (Y)
