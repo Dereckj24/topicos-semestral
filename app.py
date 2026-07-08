@@ -9,35 +9,42 @@ import folium
 import json
 from google.oauth2 import service_account
 
-if 'GOOGLE_APPLICATION_CREDENTIALS_JSON' in st.secrets:
-    try:
-        raw_json_string = st.secrets["GOOGLE_APPLICATION_CREDENTIALS_JSON"]
-        creds_dict = json.loads(raw_json_string)
-        
-        # Diagnóstico en pantalla para que veas si la clave está vacía o incompleta
-        if 'private_key' in creds_dict:
-            pk = creds_dict['private_key']
-            st.info(f"Visualización de diagnóstico - Longitud de la clave: {len(pk)} caracteres.")
-            # Corregimos saltos de línea por si acaso
-            creds_dict['private_key'] = pk.replace('\\n', '\n').replace('\\\\n', '\n')
-        else:
-            st.error("¡ERROR CRÍTICO: La propiedad 'private_key' no existe en el JSON de tus Secrets!")
+# =========================================================================
+# CONFIGURACIÓN DIRECTA DE CREDENCIALES (Inmune a errores de Streamlit Cloud)
+# =========================================================================
+# 1. Pega aquí el correo de cliente de tu JSON original
+CLIENT_EMAIL = "tu-cuenta-de-servicio@tu-proyecto.iam.gserviceaccount.com"
 
-        scopes = ['https://www.googleapis.com/auth/earthengine', 'https://www.googleapis.com/auth/cloud-platform']
-        credentials = service_account.Credentials.from_service_account_info(creds_dict, scopes=scopes)
-        ee.Initialize(credentials=credentials)
-        st.success("¡Conexión exitosa a Google Earth Engine!")
-        
-    except Exception as e:
-        # Esto romperá la censura de Streamlit y te mostrará el motivo real del fallo en la pantalla
-        st.error(f"Error detallado al inicializar Earth Engine: {str(e)}")
-        
-else:
+# 2. Pega aquí la clave privada idéntica, usando comillas triples. 
+# Asegúrate de incluir los \n tal y como vienen en una sola línea en tu JSON.
+PRIVATE_KEY = "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC3X7Nv...\n-----END PRIVATE KEY-----\n"
+# =========================================================================
+
+try:
+    # Formatear la clave para corregir cualquier escape de barras de forma estricta
+    clean_key = PRIVATE_KEY.replace('\\n', '\n').replace('\\\\n', '\n')
+    
+    creds_dict = {
+        "type": "service_account",
+        "client_email": CLIENT_EMAIL,
+        "private_key": clean_key
+    }
+    
+    scopes = ['https://www.googleapis.com/auth/earthengine', 'https://www.googleapis.com/auth/cloud-platform']
+    credentials = service_account.Credentials.from_service_account_info(creds_dict, scopes=scopes)
+    
+    # Inicializar Earth Engine de forma global antes de cualquier otra llamada
+    ee.Initialize(credentials=credentials)
+    st.success("¡Conexión exitosa a Google Earth Engine!")
+
+except Exception as e:
+    # Diagnóstico por si acaso quedara algún residuo
+    st.error(f"Error en autenticación: {str(e)}")
+    # Si falla en la nube, intentará el método local por si estás en tu PC
     try:
         ee.Initialize()
-    except Exception as e:
-        ee.Authenticate()
-        ee.Initialize()
+    except Exception:
+        pass
 
 # --- DEFINICIÓN DE GEOMETRÍAS (ROIs) ---
 # Coordenadas del Entorno Campus UTP (Frontera Activa)
