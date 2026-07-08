@@ -8,17 +8,15 @@ import psycopg2
 import folium
 import json
 
-if 'EARTH_ENGINE_CREDENTIALS' in st.secrets:
-    # 1. Leer el texto plano desde los secretos
-    ee_creds_raw = st.secrets["EARTH_ENGINE_CREDENTIALS"]
-    
-    # 2. Convertir el texto en un diccionario real (json maneja los saltos de línea automáticamente)
-    ee_creds = json.loads(ee_creds_raw)
-    
-    # 3. Autenticar usando directamente el diccionario extraído
+if 'EE_PRIVATE_KEY' in st.secrets:
+    # Leer las dos variables limpias desde los secretos
+    client_email = st.secrets["EE_CLIENT_EMAIL"]
+    private_key = st.secrets["EE_PRIVATE_KEY"]
+
+    # Autenticar de forma directa sin conversiones JSON complejas
     credential_object = ee.ServiceAccountCredentials(
-        ee_creds['client_email'], 
-        key_data=ee_creds['private_key']
+        client_email, 
+        key_data=private_key
     )
     ee.Initialize(credential_object)
         
