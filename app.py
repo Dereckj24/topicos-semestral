@@ -10,23 +10,17 @@ import json
 from google.oauth2 import service_account
 
 if 'GOOGLE_APPLICATION_CREDENTIALS_JSON' in st.secrets:
-    # 1. Leer el JSON completo desde los secretos
+    # 1. Leer el texto plano desde los secretos
     creds_string = st.secrets["GOOGLE_APPLICATION_CREDENTIALS_JSON"]
     
-    # 2. Convertirlo en diccionario válido de Python
+    # 2. Convertir el texto en un diccionario real (json maneja los saltos de línea automáticamente)
     creds_dict = json.loads(creds_string)
     
-    # --- LA LÍNEA MÁGICA SALVADORA ---
-    # Forzar a Python a interpretar las barras invertidas como saltos de línea reales de criptografía
-    if 'private_key' in creds_dict:
-        creds_dict['private_key'] = creds_dict['private_key'].replace('\\n', '\n')
-    # ---------------------------------
-    
-    # 3. Autenticar usando las credenciales limpias de Google OAuth2
+    # 3. Autenticar usando las credenciales nativas de Google OAuth2 sin alterar strings
     scopes = ['https://www.googleapis.com/auth/earthengine', 'https://www.googleapis.com/auth/cloud-platform']
     credentials = service_account.Credentials.from_service_account_info(creds_dict, scopes=scopes)
     
-    # 4. Inicializar Earth Engine con las credenciales validadas
+    # 4. Inicializar Earth Engine
     ee.Initialize(credentials=credentials)
         
 else:
